@@ -79,6 +79,7 @@ function App() {
 
   const theme = THEMES[currentTheme] || THEMES.iosLight;
 
+  // ၁။ Auth Listener
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -87,6 +88,7 @@ function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // ၂။ Firestore Data Listener
   useEffect(() => {
     if (!user) { setTasks([]); setTransactions([]); return; }
     const qTasks = query(collection(db, "tasks"), where("userId", "==", user.uid));
@@ -105,6 +107,36 @@ function App() {
 
     return () => { unsubscribeTasks(); unsubscribeTx(); };
   }, [user]);
+
+  // 🔥 ၃။ iOS Overscroll (Elastic Background) Sync & Complete Zoom Lock Fix
+  useEffect(() => {
+    // Background Color Sync (အပေါ်အောက်ဆွဲလျှင် အဖြူကွက်မပေါ်စေရန်)
+    const themeBackgrounds = {
+      iosLight: "#F2F2F7",
+      iosDark: "#000000",
+      roseGold: "#FFF9F9",
+      deepPurple: "#0B0914"
+    };
+    const targetColor = themeBackgrounds[currentTheme] || "#F2F2F7";
+    document.documentElement.style.backgroundColor = targetColor;
+    document.body.style.backgroundColor = targetColor;
+
+    // လက်နှစ်ချောင်းဖြင့် ကားပြီး Zoom ဆွဲခြင်းကို Prevent လုပ်ရန် (Pinch-to-zoom lock)
+    const preventZoom = (e) => {
+      if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('gesturestart', preventZoom);
+
+    // Screen ကို နှစ်ချက်တောက်ပြီး Zoom ဆွဲခြင်းကို တားဆီးရန် (Double-tap zoom lock)
+    document.body.style.touchAction = 'manipulation';
+    document.documentElement.style.touchAction = 'manipulation';
+
+    return () => {
+      document.removeEventListener('gesturestart', preventZoom);
+    };
+  }, [currentTheme]);
 
   const handleThemeChange = (newThemeKey) => {
     setCurrentTheme(newThemeKey);
@@ -313,7 +345,7 @@ function App() {
         theme={theme} 
       />
 
-      {/* 💸 ရှင်းလင်းသွားသော အသစ်ချိတ်ဆက်ထားသည့် Transaction Modal Component */}
+      {/* 💸 Transaction Modal Component */}
       <AddTransactionModal 
         isOpen={isTxModalOpen}
         onClose={resetTxForm}
@@ -330,107 +362,102 @@ function App() {
         theme={theme}
       />
 
-     {/* 🔮 Minimalist Action Menu Popup */}
-{isActionMenuOpen && (
-  <div 
-    className="fixed inset-0 z-40 flex items-end justify-center bg-black/20 backdrop-blur-md animate-fade-in" 
-    onClick={() => setIsActionMenuOpen(false)}
-  >
-    <div 
-      className={`w-[85%] max-w-xs mb-32 p-1.5 rounded-[2rem] shadow-2xl border border-white/10 transform transition-all animate-slide-up ${theme.card}`} 
-      onClick={e => e.stopPropagation()}
-    >
-      <div className="flex flex-col overflow-hidden rounded-[1.6rem]">
-        
-        {/* 📝 Task Option Row */}
-        <button 
-          onClick={() => { setIsTaskModalOpen(true); setIsActionMenuOpen(false); }} 
-          className="flex items-center gap-3.5 w-full px-4 py-3.5 text-left transition-all active:bg-gray-500/10"
+      {/* 🔮 Minimalist Action Menu Popup */}
+      {isActionMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/20 backdrop-blur-md animate-fade-in" 
+          onClick={() => setIsActionMenuOpen(false)}
         >
-          {/* iOS Style Blue Task Icon Badge */}
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#007AFF]/10 text-[#007AFF]">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
+          <div 
+            className={`w-[85%] max-w-xs mb-32 p-1.5 rounded-[2rem] shadow-2xl border border-white/10 transform transition-all animate-slide-up ${theme.card}`} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex flex-col overflow-hidden rounded-[1.6rem]">
+              
+              {/* 📝 Task Option Row */}
+              <button 
+                onClick={() => { setIsTaskModalOpen(true); setIsActionMenuOpen(false); }} 
+                className="flex items-center gap-3.5 w-full px-4 py-3.5 text-left transition-all active:bg-gray-500/10"
+              >
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#007AFF]/10 text-[#007AFF]">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <span className={`text-[15px] font-medium tracking-tight flex-1 ${theme.textHead}`}>
+                  Task အသစ်ထည့်ရန်
+                </span>
+                <svg className="w-3.5 h-3.5 text-gray-400 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              <div className="h-[0.5px] bg-gray-500/10 mx-4" />
+
+              {/* 💸 Transaction Option Row */}
+              <button 
+                onClick={() => { resetTxForm(); setIsTxModalOpen(true); setIsActionMenuOpen(false); }} 
+                className="flex items-center gap-3.5 w-full px-4 py-3.5 text-left transition-all active:bg-gray-500/10"
+              >
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#34C759]/10 text-[#34C759]">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.214.13a1.166 1.166 0 001.533-.119L15 10.5M15 10.5a1.164 1.164 0 01-1.164 1.164h-1.671a1.164 1.164 0 01-1.164-1.164V9.164c0-.643.52-1.164 1.164-1.164h1.671c.643 0 1.164.52 1.164 1.164V10.5zm-5.5 5.5h.008v.008H9.5V16zm0-10h.008v.008H9.5V6zm10 10h.008v.008h-.008V16zm0-10h.008v.008h-.008V6z" />
+                  </svg>
+                </div>
+                <span className={`text-[15px] font-medium tracking-tight flex-1 ${theme.textHead}`}>
+                  Ref ငွေစာရင်းမှတ်ရန်
+                </span>
+                <svg className="w-3.5 h-3.5 text-gray-400 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+            </div>
           </div>
-          <span className={`text-[15px] font-medium tracking-tight flex-1 ${theme.textHead}`}>
-            Task အသစ်ထည့်ရန်
-          </span>
-          {/* Chevron Right Arrow */}
-          <svg className="w-3.5 h-3.5 text-gray-400 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-
-        {/* ပါးလွှာပြီး သပ်ရပ်သော Divider Line */}
-        <div className="h-[0.5px] bg-gray-500/10 mx-4" />
-
-        {/* 💸 Transaction Option Row */}
-        <button 
-          onClick={() => { resetTxForm(); setIsTxModalOpen(true); setIsActionMenuOpen(false); }} 
-          className="flex items-center gap-3.5 w-full px-4 py-3.5 text-left transition-all active:bg-gray-500/10"
-        >
-          {/* iOS Style Green Transaction Icon Badge */}
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#34C759]/10 text-[#34C759]">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.214.13a1.166 1.166 0 001.533-.119L15 10.5M15 10.5a1.164 1.164 0 01-1.164 1.164h-1.671a1.164 1.164 0 01-1.164-1.164V9.164c0-.643.52-1.164 1.164-1.164h1.671c.643 0 1.164.52 1.164 1.164V10.5zm-5.5 5.5h.008v.008H9.5V16zm0-10h.008v.008H9.5V6zm10 10h.008v.008h-.008V16zm0-10h.008v.008h-.008V6z" />
-            </svg>
-          </div>
-          <span className={`text-[15px] font-medium tracking-tight flex-1 ${theme.textHead}`}>
-            ငွေစာရင်းမှတ်ရန်
-          </span>
-          {/* Chevron Right Arrow */}
-          <svg className="w-3.5 h-3.5 text-gray-400 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
       {/* 📱 iOS FLOATING BOTTOM DOCK */}
-<nav className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-[2rem] px-2 py-1 flex justify-between items-center z-30 transition-all duration-500 ${theme.dock}`}>
-  
-  <button onClick={() => setActiveTab("dashboard")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'dashboard' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-  </button>
+      <nav className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-[2rem] px-2 py-1 flex justify-between items-center z-30 transition-all duration-500 ${theme.dock}`}>
+        
+        <button onClick={() => setActiveTab("dashboard")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'dashboard' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+        </button>
 
-  <button onClick={() => setActiveTab("tasks")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'tasks' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-  </button>
+        <button onClick={() => setActiveTab("tasks")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'tasks' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+        </button>
 
-  {/* 🌟 Dynamic Theme Colored Center Floating "+" Button */}
-  <div className="w-1/5 flex justify-center relative -top-6">
-    <button 
-      onClick={() => setIsActionMenuOpen(!isActionMenuOpen)} 
-      className={`w-14 h-14 flex items-center justify-center rounded-full text-white shadow-[0_8px_25px_rgba(0,0,0,0.25)] transition-all duration-300 active:scale-90 ${
-        isActionMenuOpen 
-          ? 'bg-[#FF3B30] rotate-45 shadow-red-500/20' 
-          : `bg-gradient-to-tr ${
-              currentTheme === 'iosLight' ? 'from-[#007AFF] to-[#54A6FF]' :
-              currentTheme === 'iosDark' ? 'from-[#0A84FF] to-[#0055B3]' :
-              currentTheme === 'roseGold' ? 'from-[#FF2D55] to-[#FF6B8B]' :
-              currentTheme === 'deepPurple' ? 'from-[#BF5AF2] to-[#D68FFF]' : 
-              'from-[#007AFF] to-[#0A84FF]'
-            }`
-      }`}
-    >
-      <svg className="w-7 h-7 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
-      </svg>
-    </button>
-  </div>
+        {/* 🌟 Dynamic Theme Colored Center Floating "+" Button */}
+        <div className="w-1/5 flex justify-center relative -top-6">
+          <button 
+            onClick={() => setIsActionMenuOpen(!isActionMenuOpen)} 
+            className={`w-14 h-14 flex items-center justify-center rounded-full text-white shadow-[0_8px_25px_rgba(0,0,0,0.25)] transition-all duration-300 active:scale-90 ${
+              isActionMenuOpen 
+                ? 'bg-[#FF3B30] rotate-45 shadow-red-500/20' 
+                : `bg-gradient-to-tr ${
+                    currentTheme === 'iosLight' ? 'from-[#007AFF] to-[#54A6FF]' :
+                    currentTheme === 'iosDark' ? 'from-[#0A84FF] to-[#0055B3]' :
+                    currentTheme === 'roseGold' ? 'from-[#FF2D55] to-[#FF6B8B]' :
+                    currentTheme === 'deepPurple' ? 'from-[#BF5AF2] to-[#D68FFF]' : 
+                    'from-[#007AFF] to-[#0A84FF]'
+                  }`
+            }`}
+          >
+            <svg className="w-7 h-7 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
+            </svg>
+          </button>
+        </div>
 
-  <button onClick={() => setActiveTab("budget")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'budget' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-  </button>
+        <button onClick={() => setActiveTab("budget")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'budget' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </button>
 
-  <button onClick={() => setActiveTab("settings")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'settings' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
-    <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}`} alt="Profile" className={`w-7 h-7 rounded-full border-2 transition-all ${activeTab === 'settings' ? 'border-[#007AFF]' : 'border-transparent opacity-60'}`} />
-  </button>
-</nav>
+        <button onClick={() => setActiveTab("settings")} className={`w-1/5 flex flex-col items-center gap-1 py-2 rounded-full transition-all duration-300 active:scale-95 ${activeTab === 'settings' ? theme.dockActive : 'hover:text-gray-400 opacity-60'}`}>
+          <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}`} alt="Profile" className={`w-7 h-7 rounded-full border-2 transition-all ${activeTab === 'settings' ? 'border-[#007AFF]' : 'border-transparent opacity-60'}`} />
+        </button>
+      </nav>
 
     </div>
   );
