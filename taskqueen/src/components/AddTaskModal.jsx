@@ -51,7 +51,7 @@ function AddTaskModal({
               <input
                 type="text"
                 autoFocus
-                placeholder="ဘာတွေ ပြီးမြောက်အောင် လုပ်မလဲ..."
+                placeholder="ဒီနေ့ဘာတွေလုပ်မှာလဲ?..."
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
                 className={`w-full px-4 py-4 rounded-2xl transition-all outline-none text-[15px] ${theme.input}`}
