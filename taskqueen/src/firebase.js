@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from
 "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 // Firebase Console (Web App) မှရရှိŴသာ သင်၏ Config ကို ဤŴနေရာတွင် အစားထိုးပါ
 const firebaseConfig = {
  apiKey: "AIzaSyBjvqSRQpfUH5HxXpYgLFhAFa_G2cYeG1o",
@@ -22,3 +23,5 @@ const db = initializeFirestore(app, {
  })
 });
 export { db };
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
