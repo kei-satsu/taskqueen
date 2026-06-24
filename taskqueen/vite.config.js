@@ -17,12 +17,12 @@ export default defineConfig({
  orientation: 'portrait',
  icons: [
  {
- src: 'pwa-192x192.png',
+ src: 'appicon.png',
  sizes: '192x192',
  type: 'image/png'
  },
  {
- src: 'pwa-512x512.png',
+ src: 'appicon.png',
  sizes: '512x512',
  type: 'image/png'
  }
